@@ -9,7 +9,7 @@
 # By default, fastlane will send which actions are used
 # No personal data is shared, more information on https://github.com/fastlane/enhancer
 # Uncomment the following line to opt out
-# opt_out_usage
+opt_out_usage
 
 # If you want to automatically update fastlane if a new version is available:
 # update_fastlane
