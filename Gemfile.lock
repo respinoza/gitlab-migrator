@@ -89,8 +89,8 @@ GEM
       fastimage (~> 1.6.3)
       fastlane_core (>= 0.16.0, < 1.0.0)
       mini_magick (~> 4.0.2)
-    gitlab (3.7.0)
-      httparty (~> 0.13.0)
+    gitlab (4.2.0)
+      httparty
       terminal-table
     google-api-client (0.8.6)
       activesupport (>= 3.2)
@@ -120,11 +120,10 @@ GEM
     highline (1.7.8)
     http-cookie (1.0.2)
       domain_name (~> 0.5)
-    httparty (0.13.7)
-      json (~> 1.8)
+    httparty (0.15.6)
       multi_xml (>= 0.5.2)
     i18n (0.7.0)
-    json (1.8.3)
+    json (1.8.6)
     jwt (1.5.2)
     krausefx-shenzhen (0.14.7)
       commander (~> 4.3)
@@ -156,7 +155,7 @@ GEM
     mini_magick (4.0.4)
     minitest (5.8.4)
     multi_json (1.11.2)
-    multi_xml (0.5.5)
+    multi_xml (0.6.0)
     multipart-post (2.0.0)
     net-sftp (2.1.2)
       net-ssh (>= 2.6.5)
@@ -247,4 +246,4 @@ DEPENDENCIES
   gitlab
 
 BUNDLED WITH
-   1.12.5
+   1.13.1
