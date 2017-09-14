@@ -19,7 +19,7 @@ Migrate a specific project
 
 Specify the project that should be migrated by its path (with namespace) via the project parameter
 
-Example: fastlane migrate project:cocoapods/specs
+Example: fastlane migrate project:cocoapods/specs project_dst:group/name
 
 ----
 

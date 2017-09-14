@@ -6,22 +6,22 @@ module Fastlane
     require 'fileutils'
     class MigrateGitRepositoryAction < Action
       def self.run(params)
-        Dir.mktmpdir do |tmpdir|
-          UI.message ("Cloning Repository from #{params[:from_repo_url]} into #{tmpdir}")
-          clone_result = Actions.sh("git clone #{params[:from_repo_url]} #{tmpdir}")
-          if clone_result.include?("warning: You appear to have cloned an empty repository.")
-              UI.message ("Skipping empty repository #{params[:to_repo_url]}")
-          else
-            Dir.chdir(tmpdir) do
-              Actions.sh("git remote add newOrigin #{params[:to_repo_url]}")
-              default_branch = Actions.sh("git rev-parse --abbrev-ref HEAD")
-              Actions.sh("for remote in `git branch -r | grep -v #{default_branch} `; do git checkout --track $remote ; done")
-              Actions.sh("git push newOrigin --all")
-              Actions.sh("git push newOrigin --tags")
-            end
-
-          end
-        end
+        # Dir.mktmpdir do |tmpdir|
+        #   UI.message ("Cloning Repository from #{params[:from_repo_url]} into #{tmpdir}")
+        #   clone_result = Actions.sh("git clone #{params[:from_repo_url]} #{tmpdir}")
+        #   if clone_result.include?("warning: You appear to have cloned an empty repository.")
+        #       UI.message ("Skipping empty repository #{params[:to_repo_url]}")
+        #   else
+        #     Dir.chdir(tmpdir) do
+        #       Actions.sh("git remote add newOrigin #{params[:to_repo_url]}")
+        #       default_branch = Actions.sh("git rev-parse --abbrev-ref HEAD")
+        #       Actions.sh("for remote in `git branch -r | grep -v #{default_branch} `; do git checkout --track $remote ; done")
+        #       Actions.sh("git push newOrigin --all")
+        #       Actions.sh("git push newOrigin --tags")
+        #     end
+        #
+        #   end
+        # end
       end
 
       #####################################################

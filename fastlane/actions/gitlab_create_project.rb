@@ -4,6 +4,7 @@ module Fastlane
     end
 
     require 'gitlab'
+    require 'pp'
 
     class GitlabCreateProjectAction < Action
       def self.run(params)
@@ -15,45 +16,51 @@ module Fastlane
         else
           owner_id = -1
         end
-        UI.message ("Creating Project: #{original_project.path_with_namespace}")
+
+        project_dst = params[:project_dst]
+        UI.message ("Creating Project: #{project_dst}")
+
+        # Check if the Group and Namespace for the Project exist already
+        #group = ensure_group(source, destination, original_project.namespace, user_mapping, user_mapping[owner_id])
+
+        # Load project
+        destination_project = destination.project(project_dst)
+        UI.message ("See #{destination_project.id}")
+
+        # Sanity check
+        raise "Project not private #{destination_project.visibility}" unless destination_project.visibility == 'private'
 
         # Estimate User-Mapping
-        user_mapping = map_users(source, destination)
-        # Check if the Group and Namespace for the Project exist already
-        group = ensure_group(source, destination, original_project.namespace, user_mapping, user_mapping[owner_id])
+        # users = destination.group_members()
+        destination_group_name = project_dst.split('/').first
+        destination_groups = destination.group_search(destination_group_name)
 
-        # Create the project
-        new_project = destination.create_project(original_project.name,
-          description: original_project.description,
-          default_branch: original_project.default_branch,
-          group_id: group.id,
-          namespace_id: group.id,
-          wiki_enabled: original_project.wiki_enabled,
-          wall_enabled: original_project.wall_enabled,
-          issues_enabled: original_project.issues_enabled,
-          snippets_enabled: original_project.snippets_enabled,
-          merge_requests_enabled: original_project.merge_reques,
-          public: original_project.public
-        )
+        raise "Group not found" unless destination_groups.count == 1
 
-        UI.message("New Project created with ID: #{new_project.id} -  #{new_project}")
+        destination_group = destination_groups.first
+        destination_users = destination.group_members(destination_group.id).auto_paginate
+        original_users = source.users.auto_paginate
+
+        user_mapping = map_users(original_users, destination_users)
+
+        UI.message("Project to be used ID: #{destination_project.id} -  #{destination_project}")
 
         # Create Deploy Keys
-        migrate_deploy_keys(source, destination, original_project, new_project)
+        # migrate_deploy_keys(source, destination, original_project, new_project)
 
         # Create Labels
-        migrate_labels(source, destination, original_project, new_project)
+        migrate_labels(source, destination, original_project, destination_project)
 
         # Create Milestones
-        milestone_mapping = migrate_milestones(source, destination, original_project, new_project)
+        milestone_mapping = migrate_milestones(source, destination, original_project, destination_project)
 
         # Create Issues
-        migrate_issues(source, destination, original_project, new_project, user_mapping, milestone_mapping)
+        migrate_issues(source, destination, original_project, destination_project, user_mapping, milestone_mapping)
 
         # Create Snippets
-        migrate_snippets(source, destination, original_project, new_project, user_mapping)
+        #migrate_snippets(source, destination, original_project, new_project, destination_project)
 
-        new_project
+        destination_project
       end
 
       # Given a group (with path-name) from the original project, 
@@ -86,9 +93,9 @@ module Fastlane
 
       # Reads all users from the source gitlab and sees if there is an existing user (with the same name)
       # in the new gitlab. If so, an entrie to map the old id to the new id is inserted into the user map
-      def self.map_users(gitlab_src, gitlab_dst)
-        users_src = gitlab_src.users.auto_paginate
-        users_dst = gitlab_dst.users.auto_paginate
+      def self.map_users(original_users, destination_users)
+        users_src = original_users
+        users_dst = destination_users
 
         user_map = {}
         users_src.each do |user|
@@ -194,7 +201,7 @@ module Fastlane
             )
 
           if issue.state == "closed"
-            gitlab_dst.edit_issue(project_dst.id, new_issue.id, state_event: "close")
+            gitlab_dst.edit_issue(project_dst.id, new_issue.iid, state_event: "close")
           end
           migrate_issue_notes(gitlab_src, gitlab_dst, project_src, project_dst, issue, new_issue, usermap)
         end
@@ -203,12 +210,12 @@ module Fastlane
       end
 
       def self.migrate_issue_notes(gitlab_src, gitlab_dst, project_src, project_dst, issue_src, issue_dst, usermap)
-        UI.message("Migrating issue notes for issue #{issue_src.id}")
-        gitlab_src.issue_notes(project_src.id, issue_src.id).auto_paginate.sort { |n1, n2| n1.id <=> n2.id }.each  do |note|
+        UI.message("Migrating issue notes for issue #{issue_src.iid}")
+        gitlab_src.issue_notes(project_src.id, issue_src.iid).auto_paginate.sort { |n1, n2| n1.iid <=> n2.iid }.each  do |note|
           body = "_Original comment by #{note.author.username} on #{Time.parse(note.created_at).strftime("%d %b %Y, %H:%M")}_\n\n---\n\n#{note.body}"
-          gitlab_dst.create_issue_note(project_dst.id, issue_dst.id, body)
+          gitlab_dst.create_issue_note(project_dst.id, issue_dst.iid, body)
         end
-        UI.message("Migrated issue notes for issue #{issue_src.id}")
+        UI.message("Migrated issue notes for issue #{issue_src.iid}")
       end
 
       #####################################################
@@ -257,7 +264,11 @@ module Fastlane
           FastlaneCore::ConfigItem.new(key: :project,
                                        env_name: "FL_GITLAB_CREATE_PROJECT_PROJECT",
                                        description: "The project that should be created in the target gitlab instance, is expected to be from the source gitlab instance",
-                                       is_string: false)
+                                       is_string: false),
+          FastlaneCore::ConfigItem.new(key: :project_dst,
+                                       env_name: "FL_GITLAB_CREATE_PROJECT_PROJECT_DST",
+                                       description: "Project destination",
+                                       is_string: true)
         ]
       end
 

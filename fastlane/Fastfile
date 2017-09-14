@@ -70,7 +70,7 @@ platform :ios do
 
   desc "Migrate a specific project"
   desc "Specify the project that should be migrated by its path (with namespace) via the project parameter"
-  desc "Example: fastlane migrate project:cocoapods/specs"
+  desc "Example: fastlane migrate project:cocoapods/specs project_dst:group/name"
   lane :migrate do |params|
     project_path = params[:project] || prompt(text: "Please enter the path (including the namespace) of the project you want to migrate")
     projects_src = gitlab_get_projects(endpoint: ENV["FL_GITLAB_ENDPOINT_SRC"], api_token: ENV["FL_GITLAB_TOKEN_SRC"]).select { |p| p.path_with_namespace == project_path }
@@ -78,42 +78,35 @@ platform :ios do
     UI.message("Checking the source for existing project #{project_path}")
     raise "Project with path #{project_path} not found in source #{ENV["FL_GITLAB_ENDPOINT_SRC"]}" unless projects_src.count == 1
     project = projects_src.first
-    UI.message("Checking the destination for existing project #{project_path}")
-    projects_dst = gitlab_get_projects(endpoint: ENV["FL_GITLAB_ENDPOINT_DST"], api_token: ENV["FL_GITLAB_TOKEN_DST"]).select { |p| p.path_with_namespace == project_path }
 
-    if projects_dst.empty?
-      UI.message("Checks OK, Starting to migrate project #{project_path} to #{ENV['FL_GITLAB_ENDPOINT_DST']}")
-      new_project = gitlab_create_project(
-        project: project
-      )
-    elsif projects_dst.count == 1
-      new_project = projects_dst.first
-      UI.important("Project exists already, only migrating the repository")
-    else
-      UI.error("Several potential target projects exist: #{projects_dst}")
-      raise "Several potential target projects exist, dont know which one to pick"
-    end
+    project_dst = params[:project_dst] || prompt(text: "Project")
 
-    UI.message("Gitlab project has been migrated, now migrate the repository")
+    UI.message("Checks OK, Starting to migrate project #{project_path} to #{ENV['FL_GITLAB_ENDPOINT_DST']}")
+    new_project = gitlab_create_project(
+      project: project,
+      project_dst: project_dst
+    )
 
-    if ENV["FL_GIT_PROTOCOL_SRC"] && (ENV["FL_GIT_PROTOCOL_SRC"].downcase == 'https')
-      git_protocol_src = project.http_url_to_repo
-    else
-      git_protocol_src = project.ssh_url_to_repo
-    end
+    UI.message("Gitlab project has been migrated")
 
-    if ENV["FL_GIT_PROTOCOL_DST"] && (ENV["FL_GIT_PROTOCOL_DST"].downcase == 'https')
-      git_protocol_dst = new_project.http_url_to_repo
-    else
-      git_protocol_dst = new_project.ssh_url_to_repo
-    end
+    # if ENV["FL_GIT_PROTOCOL_SRC"] && (ENV["FL_GIT_PROTOCOL_SRC"].downcase == 'https')
+    #   git_protocol_src = project.http_url_to_repo
+    # else
+    #   git_protocol_src = project.ssh_url_to_repo
+    # end
+    #
+    # if ENV["FL_GIT_PROTOCOL_DST"] && (ENV["FL_GIT_PROTOCOL_DST"].downcase == 'https')
+    #   git_protocol_dst = new_project.http_url_to_repo
+    # else
+    #   git_protocol_dst = new_project.ssh_url_to_repo
+    # end
 
-    migrate_git_repository(from_repo_url: git_protocol_src, to_repo_url: git_protocol_dst)
+    # migrate_git_repository(from_repo_url: git_protocol_src, to_repo_url: git_protocol_dst)
 
-    if project.wiki_enabled
-      UI.message("Migrating wiki-repository")
-      migrate_git_repository(from_repo_url: git_protocol_src.gsub('.git', '.wiki.git'), to_repo_url: git_protocol_dst.gsub('.git', '.wiki.git'))
-    end
+    # if project.wiki_enabled
+    #   UI.message("Migrating wiki-repository")
+    #   migrate_git_repository(from_repo_url: git_protocol_src.gsub('.git', '.wiki.git'), to_repo_url: git_protocol_dst.gsub('.git', '.wiki.git'))
+    # end
   end
 
   # You can define as many lanes as you want
